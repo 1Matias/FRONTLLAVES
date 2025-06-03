@@ -73,7 +73,7 @@ export default {
         this.opcionesCombo1 = []
       })
   },
-
+  /*MIAKOLL */
   /*
   data() {
     return {
