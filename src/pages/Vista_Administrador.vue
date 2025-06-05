@@ -4,6 +4,23 @@
       <div class="nieto1">
         <q-select
           outlined
+          v-model="seleccionDepartamento"
+          :options="opcionesDepartamento"
+          label="Seleccione Departamento"
+          class="q-mr-md"
+          style="width: 22%"
+          @update:model-value="actualizarOpcionesCampus"
+        />
+        <q-select
+          outlined
+          v-model="seleccionCampo"
+          :options="opcionesCampo"
+          label="Seleccione Campus"
+          class="q-mr-md"
+          style="width: 22%"
+        />
+        <q-select
+          outlined
           v-model="seleccion1"
           :options="opcionesCombo1"
           label="Seleccione Bloque"
@@ -59,21 +76,45 @@ export default {
     }
   },
   mounted() {
-    // Al montar el componente, carga los bloques desde la API
+    // Cargar bloques
     fetch('http://127.0.0.1:8000/api/bloques')
       .then((response) => response.json())
       .then((data) => {
-        // data es un array de strings, lo convertimos al formato esperado por q-select
         this.opcionesCombo1 = data.map((bloque) => ({
           label: bloque,
-          value: bloque.replace('Bloque ', ''), // Extrae solo la letra, ej: "A"
+          value: bloque.replace('Bloque ', ''),
         }))
       })
       .catch(() => {
         this.opcionesCombo1 = []
       })
+
+    // Cargar departamentos
+    fetch('http://127.0.0.1:8000/api/departamentos')
+      .then((response) => response.json())
+      .then((data) => {
+        this.opcionesDepartamento = data.map((dep) => ({
+          label: dep.nombre, // Ajusta según la estructura de tu API
+          value: dep.id, // Ajusta según la estructura de tu API
+        }))
+      })
+      .catch(() => {
+        this.opcionesDepartamento = []
+      })
+
+    fetch('http://127.0.0.1:8000/api/campus')
+      .then((response) => response.json())
+      .then((data) => {
+        this.opcionesCampo = data.map((campus) => ({
+          label: campus.nombre, // Ajusta según la estructura de tu API
+          value: campus.id, // Ajusta según la estructura de tu API
+        }))
+      })
+      .catch(() => {
+        this.opcionesCampo = []
+      })
   },
-  /*MIAKOLL */
+
   /*
   data() {
     return {
@@ -123,6 +164,24 @@ export default {
         this.opcionesCombo2 = []
       }
       this.seleccion2 = null
+    },
+    actualizarOpcionesCampus(departamentoSeleccionado) {
+      // Si el departamento seleccionado es Cochabamba, muestra los campus
+      const nombreDepartamento =
+        typeof departamentoSeleccionado === 'object' && departamentoSeleccionado !== null
+          ? departamentoSeleccionado.label
+          : departamentoSeleccionado
+
+      if (nombreDepartamento === 'Cochabamba') {
+        this.opcionesCampo = [
+          { label: 'Colonial', value: 'colonial' },
+          { label: 'Juan Pablo 2', value: 'juanpablo2' },
+          { label: 'German', value: 'german' },
+        ]
+      } else {
+        this.opcionesCampo = []
+        this.seleccionCampo = null
+      }
     },
     buscar() {
       if (!this.seleccion1 || !this.seleccion2) {
