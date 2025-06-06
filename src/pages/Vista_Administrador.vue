@@ -18,6 +18,7 @@
           label="Seleccione Campus"
           class="q-mr-md"
           style="width: 22%"
+          @update:model-value="actualizarOpcionesBloques"
         />
         <q-select
           outlined
@@ -69,6 +70,13 @@ export default {
   data() {
     return {
       componenteActivo: null,
+      // Departamento
+      seleccionDepartamento: null,
+      opcionesDepartamento: [],
+      // Campus
+      seleccionCampo: null,
+      opcionesCampo: [],
+      // Bloque y Piso
       seleccion1: null,
       opcionesCombo1: [],
       seleccion2: null,
@@ -76,121 +84,156 @@ export default {
     }
   },
   mounted() {
-    // Cargar bloques
-    fetch('http://127.0.0.1:8000/api/bloques')
-      .then((response) => response.json())
-      .then((data) => {
-        this.opcionesCombo1 = data.map((bloque) => ({
-          label: bloque,
-          value: bloque.replace('Bloque ', ''),
-        }))
-      })
-      .catch(() => {
-        this.opcionesCombo1 = []
-      })
-
     // Cargar departamentos
-    fetch('http://127.0.0.1:8000/api/departamentos')
+    fetch('http://127.0.0.1:8000/api/ciudads')
       .then((response) => response.json())
       .then((data) => {
-        this.opcionesDepartamento = data.map((dep) => ({
-          label: dep.nombre, // Ajusta según la estructura de tu API
-          value: dep.id, // Ajusta según la estructura de tu API
+        this.opcionesDepartamento = data.map((ciudad) => ({
+          label: ciudad, // Ajusta según la estructura de tu API
+          value: ciudad,
         }))
       })
       .catch(() => {
         this.opcionesDepartamento = []
       })
-
-    fetch('http://127.0.0.1:8000/api/campus')
-      .then((response) => response.json())
-      .then((data) => {
-        this.opcionesCampo = data.map((campus) => ({
-          label: campus.nombre, // Ajusta según la estructura de tu API
-          value: campus.id, // Ajusta según la estructura de tu API
-        }))
-      })
-      .catch(() => {
-        this.opcionesCampo = []
-      })
   },
-
-  /*
-  data() {
-    return {
-      componenteActivo: null,
-      seleccion1: null,
-      opcionesCombo1: [
-        { label: 'Bloque A', value: 'A' },
-        { label: 'Bloque B', value: 'B' },
-        { label: 'Bloque C', value: 'C' },
-      ],
-      seleccion2: null,
-      opcionesCombo2: [],
-    }
-  },
-*/
   methods: {
+    actualizarOpcionesCampus(ciudadSeleccionada) {
+      // Obtener el nombre de la ciudad seleccionada
+      const ciudad =
+        typeof ciudadSeleccionada === 'object' && ciudadSeleccionada !== null
+          ? ciudadSeleccionada.label
+          : ciudadSeleccionada
+
+      // Realizar el POST para obtener los campus
+      fetch('http://127.0.0.1:8000/api/campuses/filtrar-por-ciudad', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ciudad }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // data.data es el array de campus
+          this.opcionesCampo = (data.data || []).map((campus) => ({
+            label: campus,
+            value: campus,
+          }))
+        })
+        .catch(() => {
+          this.opcionesCampo = []
+        })
+      // Limpiar selección anterior
+      this.seleccionCampo = null
+    },
+
+    actualizarOpcionesBloques(campusSeleccionado) {
+      // Obtener ciudad y campus seleccionados
+      const ciudad =
+        typeof this.seleccionDepartamento === 'object' && this.seleccionDepartamento !== null
+          ? this.seleccionDepartamento.label
+          : this.seleccionDepartamento
+
+      const campus =
+        typeof campusSeleccionado === 'object' && campusSeleccionado !== null
+          ? campusSeleccionado.label
+          : campusSeleccionado
+
+      // Realizar el POST para obtener los bloques
+      fetch('http://127.0.0.1:8000/api/bloques/filtrar-por-ciudad-campus', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ciudad, campus }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // data.data es el array de bloques
+          this.opcionesCombo1 = (data.data || []).map((bloque) => ({
+            label: bloque,
+            value: bloque.replace('Bloque ', ''),
+          }))
+        })
+        .catch(() => {
+          this.opcionesCombo1 = []
+        })
+      // Limpiar selección anterior
+      this.seleccion1 = null
+    },
     actualizarOpcionesPisos(bloqueSeleccionado) {
+      // Obtener ciudad, campus y bloque seleccionados
+      const ciudad =
+        typeof this.seleccionDepartamento === 'object' && this.seleccionDepartamento !== null
+          ? this.seleccionDepartamento.label
+          : this.seleccionDepartamento
+
+      const campus =
+        typeof this.seleccionCampo === 'object' && this.seleccionCampo !== null
+          ? this.seleccionCampo.label
+          : this.seleccionCampo
+
       const bloque =
         typeof bloqueSeleccionado === 'object' && bloqueSeleccionado !== null
-          ? bloqueSeleccionado.value
+          ? bloqueSeleccionado.label
           : bloqueSeleccionado
 
-      if (bloque === 'A') {
-        this.opcionesCombo2 = [
-          { label: 'Planta Baja', value: '0' },
-          { label: 'Piso 1', value: '1' },
-          { label: 'Piso 2', value: '2' },
-          { label: 'Piso 3', value: '3' },
-          { label: 'Piso 4', value: '4' },
-          { label: 'Biblioteca', value: 'biblioteca' },
-        ]
-      } else if (bloque === 'B') {
-        this.opcionesCombo2 = [
-          { label: 'Planta Baja', value: '0' },
-          { label: 'Piso 1', value: '1' },
-          { label: 'Piso 2', value: '2' },
-        ]
-      } else if (bloque === 'C') {
-        this.opcionesCombo2 = [
-          { label: 'Piso 1', value: '1' },
-          { label: 'Piso 2', value: '2' },
-          { label: 'Piso 3', value: '3' },
-          { label: 'Piso 4', value: '4' },
-          { label: 'Piso 5', value: '5' },
-        ]
-      } else {
-        this.opcionesCombo2 = []
-      }
+      // Realizar el POST para obtener los pisos
+      fetch('http://127.0.0.1:8000/api/pisos/filtrar-por-ciudad-campus-bloque', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ciudad, campus, bloque }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // data.data es el array de pisos
+          this.opcionesCombo2 = (data.data || []).map((piso) => ({
+            label: piso,
+            value: piso,
+          }))
+        })
+        .catch(() => {
+          this.opcionesCombo2 = []
+        })
+      // Limpiar selección anterior
       this.seleccion2 = null
-    },
-    actualizarOpcionesCampus(departamentoSeleccionado) {
-      // Si el departamento seleccionado es Cochabamba, muestra los campus
-      const nombreDepartamento =
-        typeof departamentoSeleccionado === 'object' && departamentoSeleccionado !== null
-          ? departamentoSeleccionado.label
-          : departamentoSeleccionado
-
-      if (nombreDepartamento === 'Cochabamba') {
-        this.opcionesCampo = [
-          { label: 'Colonial', value: 'colonial' },
-          { label: 'Juan Pablo 2', value: 'juanpablo2' },
-          { label: 'German', value: 'german' },
-        ]
-      } else {
-        this.opcionesCampo = []
-        this.seleccionCampo = null
-      }
     },
     buscar() {
       if (!this.seleccion1 || !this.seleccion2) {
         console.warn('Debe seleccionar un bloque y un piso')
         return
       }
-      const bloque = typeof this.seleccion1 === 'object' ? this.seleccion1.value : this.seleccion1
-      const piso = typeof this.seleccion2 === 'object' ? this.seleccion2.value : this.seleccion2
 
+      // Captura los textos de los combobox
+      const ciudad =
+        typeof this.seleccionDepartamento === 'object' && this.seleccionDepartamento !== null
+          ? this.seleccionDepartamento.label
+          : this.seleccionDepartamento
+      const campus =
+        typeof this.seleccionCampo === 'object' && this.seleccionCampo !== null
+          ? this.seleccionCampo.label
+          : this.seleccionCampo
+      const bloqueCompleto =
+        typeof this.seleccion1 === 'object' && this.seleccion1 !== null
+          ? this.seleccion1.label
+          : this.seleccion1
+      const pisoCompleto =
+        typeof this.seleccion2 === 'object' && this.seleccion2 !== null
+          ? this.seleccion2.label
+          : this.seleccion2
+
+      // Extraer solo la letra del bloque (A, B, C)
+      const bloque = bloqueCompleto.replace('Bloque ', '')
+
+      // Extraer solo el número/nombre del piso
+      const piso = pisoCompleto.replace('Piso ', '').toLowerCase()
+
+      console.log('Bloque:', bloque, 'Piso:', piso) // Para debugging
+
+      // Mostrar componente basado en bloque y piso
       let componente = null
 
       if (bloque === 'A' && piso === '0') {
@@ -201,52 +244,65 @@ export default {
         componente = markRaw(Bloque_A_Piso_Biblioteca)
       } else if (bloque === 'B' && ['0', '1', '2'].includes(piso)) {
         componente = markRaw(Bloque_B_Piso_1)
+      } else if (bloque === 'C' && piso === '1') {
+        componente = markRaw(Bloque_C_Piso_1)
       } else if (bloque === 'C' && ['2', '3', '4'].includes(piso)) {
         componente = markRaw(Bloque_C_Piso_2)
-      } else {
-        const componentMap = {
-          C_1: markRaw(Bloque_C_Piso_1),
-          C_5: markRaw(Bloque_C_Piso_5),
-        }
-        const clave = `${bloque}_${piso}`
-        componente = componentMap[clave]
+      } else if (bloque === 'C' && piso === '5') {
+        componente = markRaw(Bloque_C_Piso_5)
       }
 
       this.componenteActivo = componente
 
-      if (bloque === 'C' && piso === '1') {
-        this.$nextTick(async () => {
-          const boton1 = document.querySelector('.Boton1')
-          const boton2 = document.querySelector('.Boton2')
-          const boton3 = document.querySelector('.Boton3')
-          const boton4 = document.querySelector('.Boton4')
-          const boton5 = document.querySelector('.Boton5')
-          const boton6 = document.querySelector('.Boton6')
-          const botones = [boton1, boton2, boton3, boton4, boton5, boton6]
-
-          try {
-            const response = await fetch('http://127.0.0.1:8000/api/aulas')
-            const data = await response.json()
-
-            // Obtiene las claves del objeto data (los nombres de las aulas)
-            const nombres = Object.keys(data)
-
-            // Asigna cada nombre al botón correspondiente:
+      // Fetch para mostrar aulas en los botones
+      fetch('http://127.0.0.1:8000/api/aulas/filtrar-por-ciudad-campus-bloque-piso', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ciudad,
+          campus,
+          bloque: bloqueCompleto, // Usar el nombre completo para la API
+          piso: pisoCompleto, // Usar el nombre completo para la API
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          const nombres = data.data || []
+          this.$nextTick(() => {
+            const botones = [
+              document.querySelector('.Boton1'),
+              document.querySelector('.Boton2'),
+              document.querySelector('.Boton3'),
+              document.querySelector('.Boton4'),
+              document.querySelector('.Boton5'),
+              document.querySelector('.Boton6'),
+            ]
             botones.forEach((boton, index) => {
-              boton.textContent = nombres[index] || 'NO'
+              if (boton) {
+                boton.textContent = nombres[index] || 'NO'
+              }
             })
-          } catch {
-            // En caso de error, asigna 'NO' a todos los botones.
-            botones.forEach((boton) => {
-              boton.textContent = 'NO'
-            })
-          }
+          })
         })
-      }
-      // Reinicia las selecciones y opciones del segundo combo
-      this.seleccion1 = null
-      this.seleccion2 = null
-      this.opcionesCombo2 = []
+        .catch(() => {
+          this.$nextTick(() => {
+            const botones = [
+              document.querySelector('.Boton1'),
+              document.querySelector('.Boton2'),
+              document.querySelector('.Boton3'),
+              document.querySelector('.Boton4'),
+              document.querySelector('.Boton5'),
+              document.querySelector('.Boton6'),
+            ]
+            botones.forEach((boton) => {
+              if (boton) {
+                boton.textContent = 'NO'
+              }
+            })
+          })
+        })
     },
   },
 }
